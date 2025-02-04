@@ -7,6 +7,8 @@ from datetime import datetime
 import json
 import re
 import shutil
+import pytz
+
 
 
 # بارگذاری متغیرهای محیطی
@@ -26,9 +28,17 @@ llm = ChatOpenAI(
     openai_api_base=AVALAI_API_BASE_URL
 )
 
+
 def get_today_date():
-    today = datetime.today()
-    return today.strftime("%Y-%m-%d")  # فرمت تاریخ: سال-ماه-روز
+    # تنظیم منطقه زمانی ایران
+    iran_tz = pytz.timezone('Asia/Tehran')
+
+    # دریافت تاریخ و ساعت کنونی به وقت ایران
+    iran_time = datetime.now(iran_tz)
+
+    # فرمت تاریخ و زمان: سال-ماه-روز ساعت:دقیقه
+    return iran_time.strftime("%Y-%m-%d %H:%M")  # فرمت تاریخ: سال-ماه-روز ساعت:دقیقه
+
 
 
 
