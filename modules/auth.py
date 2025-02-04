@@ -23,7 +23,7 @@ def login():
     
     request_uri = client.prepare_request_uri(
         authorization_endpoint,
-        redirect_uri="http://127.0.0.1:5000/login/callback",  # مسیر بازگشت به درست تعریف شده است
+        redirect_uri="https://calchat-lfik.onrender.com/login/callback",  # مسیر بازگشت به درست تعریف شده است
         scope=["openid", "email", "profile", "https://www.googleapis.com/auth/calendar"]
     )
     return redirect(request_uri)
