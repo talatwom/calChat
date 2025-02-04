@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود به گوگل</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="login-page">
+        <div class="login-container">
+            <h1>ورود به سیستم</h1>
+            <p>برای ادامه وارد حساب گوگل خود شوید</p>
+            <a class="google-login-btn" href="{{ url_for('login_route') }}">
+                ورود به گوگل
+            </a>
+        </div>
+    </div>
+</body>
+</html>
