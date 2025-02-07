@@ -6,9 +6,8 @@ from dotenv import load_dotenv
 from datetime import datetime
 import json
 import re
-import shutil
 import pytz
-
+import shutil
 
 
 # بارگذاری متغیرهای محیطی
@@ -28,7 +27,6 @@ llm = ChatOpenAI(
     openai_api_base=AVALAI_API_BASE_URL
 )
 
-
 def get_today_date():
     # تنظیم منطقه زمانی ایران
     iran_tz = pytz.timezone('Asia/Tehran')
@@ -38,7 +36,6 @@ def get_today_date():
 
     # فرمت تاریخ و زمان: سال-ماه-روز ساعت:دقیقه
     return iran_time.strftime("%Y-%m-%d %H:%M")  # فرمت تاریخ: سال-ماه-روز ساعت:دقیقه
-
 
 
 
@@ -84,33 +81,59 @@ def save_event_details_to_json(event_details):
 
 # تابع برای پردازش متن و استخراج اطلاعات رویداد
 def extract_event_details(text):
-    today_date = get_today_date()  # گرفتن تاریخ امروز
+    today_date = get_today_date()  # دریافت تاریخ امروز
     response = llm.predict(f"""
-    Today is: '{today_date}'. Based on today. Please extract the event details from the following text:
-    1. Title of the event
-    2. Start Date and Time (in ISO 8601 format: YYYY-MM-DDTHH:MM:SS)
-    3. End Date and Time (in ISO 8601 format: YYYY-MM-DDTHH:MM:SS)
-    4. Description of the event
-    5. Location of the event
+    Today is: '{today_date}'. Based on today, please extract the event details from the following text:
     
-    Please format the output as a JSON object like this and nothing else:
+    1. **Title of the event**: A short, clear name for the event.
+    2. **Start Date and Time**: Extract in ISO 8601 format (YYYY-MM-DDTHH:MM:SS).
+    3. **End Date and Time**: Extract in ISO 8601 format (YYYY-MM-DDTHH:MM:SS).
+    4. **Description**: A brief explanation of the event.
+    5. **Location**: If a location is mentioned, extract it.
+    6. **Recurrence Rule (`RRULE`)**: If the event repeats, extract the pattern:
+       - If it repeats weekly on multiple days, use "BYDAY=XX,XX,XX" format.
+       - **Ensure that "SA" is used for Saturday and "SU" is used for Sunday**.
+       - If the event lasts for multiple weeks, set COUNT as (weeks × number of days per week).
+       - If it is a daily repetition, use "FREQ=DAILY;COUNT=N".
+       - If it is a monthly or yearly event, format it properly.
+       - If no recurrence is found, return an empty list.
+    7. **Event Color (`colorId`)**:
+       Assign a color based on event type:
+       - **Work-related events** → `"1"` (Light Blue)
+       - **Health, medical, fitness** → `"2"` (Green)
+       - **Personal projects, planning** → `"3"` (Purple)
+       - **Urgent deadlines, critical events** → `"4"` (Red)
+       - **Reminders, small tasks** → `"5"` (Yellow)
+       - **Important appointments, client meetings** → `"6"` (Orange)
+       - **Travel, vacations, leisure** → `"7"` (Turquoise)
+       - **Routine tasks, general admin work** → `"8"` (Gray)
+       - **Education, courses, training** → `"9"` (Dark Blue)
+       - **Celebrations, special occasions** → `"10"` (Pink)
+       - **Strategic meetings, long-term planning** → `"11"` (Indigo)
+       - If no specific category is found, assign a reasonable default color.
 
+    **📌 Format the output strictly as a JSON object like this and nothing else:**
+    
     {{
         "summary": "Event Title",
         "start": {{
             "dateTime": "YYYY-MM-DDTHH:MM:SS",
-            "timeZone": "Asia/Tehran"  # منطقه زمانی را اضافه کنید
+            "timeZone": "Asia/Tehran"
         }},
         "end": {{
             "dateTime": "YYYY-MM-DDTHH:MM:SS",
-            "timeZone": "Asia/Tehran"  # منطقه زمانی را اضافه کنید
+            "timeZone": "Asia/Tehran"
         }},
         "location": "Event Location",
-        "description": "Event Description"
+        "description": "Event Description",
+        "recurrence": ["RRULE:FREQ=...;BYDAY=XX,XX;COUNT=N"] or [],
+        "colorId": "X"
     }}
 
     Text to analyze: '{text}'
     """)
+
+
     save_event_details_to_json(response)
     return response
 
