@@ -1,100 +1,219 @@
 <!DOCTYPE html>
 <html lang="fa">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>چت‌بات تقویم</title>
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>چت‌بات تقویم</title>
+  <!-- فونت و آیکون‌ها -->
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- استایل‌های اصلی (که شامل استایل دکمه .add-event-btn و سایر استایل‌های پروژه است) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  
+  <!-- استایل‌های اختصاصی برای کارت‌های رویداد -->
+  <style>
+    /* استایل کارت‌های رویداد */
+    .event-card {
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+    .event-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .event-datetime {
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+    .event-description {
+      font-size: 14px;
+    }
+    /* استایل برای متن پیش‌فرض پیام ربات */
+    .bot-default-text {
+      font-style: italic;
+      margin-bottom: 8px;
+    }
+    /* استایل container دکمه‌ها (برای هماهنگی با استایل اصلی) */
+    .event-buttons {
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-
-<div class="chat-container">
+  <div class="chat-container">
     <div class="chat-header">چت‌بات تقویم</div>
     <div class="chat-box" id="chat-box">
-        <!-- پیام‌ها در اینجا قرار می‌گیرند -->
+      <!-- پیام‌ها اینجا نمایش داده می‌شوند -->
     </div>
     <div class="input-container">
-        <textarea id="user-input" placeholder="چی می‌خوای به تقویمت اضافه کنی؟..." rows="2"></textarea>
-        <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-rocket" style="transform: rotate(-45deg);"></i></button> <!-- تغییر آیکون -->
+      <textarea id="user-input" placeholder="چی می‌خوای به تقویمت اضافه کنی؟..." rows="2"></textarea>
+      <button class="send-btn" onclick="sendMessage()">
+        <i class="fa-solid fa-rocket" style="transform: rotate(-45deg);"></i>
+      </button>
     </div>
-</div>
+  </div>
+  
+  <script>
+    // نگاشت colorId به رنگ‌های پیشنهادی جدید
+    const eventColors = {
+      "1": "#6CA0DC",   // Softer Light Blue
+      "2": "#32CD32",   // Brighter Green
+      "3": "#9370DB",   // Softer Purple
+      "4": "#FF6347",   // Softer Red (Tomato)
+      "5": "#FFD700",   // Richer Yellow (Gold)
+      "6": "#FF8C00",   // Deep Orange (Dark Orange)
+      "7": "#20B2AA",   // Darker Turquoise
+      "8": "#A9A9A9",   // Lighter Gray (Dark Gray)
+      "9": "#4169E1",   // Softer Dark Blue (Royal Blue)
+      "10": "#FF69B4",  // Brighter Pink (Hot Pink)
+      "11": "#8A2BE2"   // Softer Indigo (Blue Violet)
+    };
 
-<script>
+    // تابع برای فرمت کردن تاریخ/زمان به‌صورت خواناتر (با استفاده از تنظیمات محلی فارسی)
+    function formatEventDateTime(isoString) {
+      try {
+        let eventDate = new Date(isoString);
+        return eventDate.toLocaleString('fa-IR', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (error) {
+        return isoString;
+      }
+    }
+
+    // تابعی برای تولید HTML پیش‌نمایش رویدادها به‌صورت کارت
+    function generateEventPreviewHtml(responseText) {
+      let html = "";
+      try {
+        let events = JSON.parse(responseText);
+        if (!Array.isArray(events)) {
+          events = [events];
+        }
+        events.forEach(function(event) {
+          let cardColor = eventColors[event.colorId] || "#333";
+          html += `<div class="event-card" style="background-color: ${cardColor};">
+                      <div class="event-title">${event.summary}</div>
+                      <div class="event-datetime">
+                        شروع: ${formatEventDateTime(event.start.dateTime)}<br>
+                        پایان: ${formatEventDateTime(event.end.dateTime)}
+                      </div>
+                      <div class="event-description">
+                        مکان: ${event.location ? event.location : 'نامشخص'}<br>
+                        توضیحات: ${event.description ? event.description : 'ندارد'}
+                      </div>
+                    </div>`;
+        });
+        // افزودن دکمه‌های تایید و لغو؛ از کلاس add-event-btn استفاده می‌کنیم تا با استایل اصلی سازگار شود
+        html += `<div class="event-buttons">
+                    <button class="add-event-btn" onclick="confirmEvents()">افزودن رویدادها</button>
+                    <button class="add-event-btn" onclick="cancelEvents()">لغو رویدادها</button>
+                 </div>`;
+      } catch (e) {
+        html = "خطا در نمایش پیش‌نمایش رویدادها.";
+      }
+      return html;
+    }
+
+    // تابع برای فرمت کردن زمان پیام‌ها
     function formatTime() {
-        var date = new Date();
-        return date.getHours() + ":" + date.getMinutes();
+      var date = new Date();
+      return date.getHours() + ":" + (date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes());
     }
 
+    // تابع ارسال پیام به سرور و دریافت پاسخ
     function sendMessage() {
-        var userInput = document.getElementById("user-input").value;
-        var chatBox = document.getElementById("chat-box");
-
-        if (userInput.trim() === "") {
-            return;
-        }
-
-        // نمایش پیام کاربر
-        chatBox.innerHTML += "<div class='message user'>" + userInput + " <span class='time'>" + formatTime() + "</span></div>";
-
-        // پاک کردن ورودی کاربر
-        document.getElementById("user-input").value = "";
-
-        // اسکرول به پایین
+      var userInput = document.getElementById("user-input").value;
+      var chatBox = document.getElementById("chat-box");
+      if (userInput.trim() === "") {
+        return;
+      }
+      // نمایش پیام کاربر
+      chatBox.innerHTML += "<div class='message user'>" + userInput + " <span class='time'>" + formatTime() + "</span></div>";
+      document.getElementById("user-input").value = "";
+      chatBox.scrollTop = chatBox.scrollHeight;
+      // نمایش انیمیشن لودینگ
+      chatBox.innerHTML += "<div class='message bot loading'><span>در حال پردازش...</span><i class='fas fa-circle-notch'></i></div>";
+      chatBox.scrollTop = chatBox.scrollHeight;
+      
+      fetch("/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: "user_input=" + encodeURIComponent(userInput)
+      })
+      .then(response => response.json())
+      .then(data => {
+        var loadingMessage = document.querySelector(".loading");
+        if (loadingMessage) loadingMessage.remove();
+        // استفاده از متن پیش‌فرض به جای نمایش پاسخ طولانی ربات
+        let defaultBotText = "<div class='bot-default-text'>رویدادها استخراج شده‌اند.</div>";
+        let inlinePreviewHtml = generateEventPreviewHtml(data.response);
+        let botResponseHtml = "<div class='message bot'>" +
+                                defaultBotText +
+                                "<div class='inline-event-preview'>" +
+                                inlinePreviewHtml +
+                                "</div>" +
+                                " <span class='time'>" + formatTime() + "</span>" +
+                                "</div>";
+        chatBox.innerHTML += botResponseHtml;
         chatBox.scrollTop = chatBox.scrollHeight;
-
-        // نمایش انیمیشن لودینگ
-        chatBox.innerHTML += "<div class='message bot loading'><span>در حال پردازش...</span><i class='fas fa-circle-notch'></i></div>";
-        chatBox.scrollTop = chatBox.scrollHeight;
-
-        // ارسال پیام به سرور
-        fetch("/ask", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: "user_input=" + encodeURIComponent(userInput)
-        })
-        .then(response => response.json())
-        .then(data => {
-            // حذف انیمیشن لودینگ
-            var loadingMessage = document.querySelector(".loading");
-            loadingMessage.remove();
-
-            // نمایش پاسخ چت‌بات
-            chatBox.innerHTML += "<div class='message bot'>" + data.response + "<button class='add-event-btn' onclick='addEventToGoogleCalendar()'>اضافه کردن رویداد به تقویم</button> <span class='time'>" + formatTime() + "</span></div>";
-            chatBox.scrollTop = chatBox.scrollHeight;  // اسکرول به پایین
-        });
+      });
     }
 
-    // افزودن عملکرد ارسال با دکمه Enter
+    // تابع تایید رویدادها (ارسال به /confirm_events)
+    function confirmEvents() {
+      fetch("/confirm_events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({})
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message);
+        // به‌جای پاک کردن پیش‌نمایش، متن پیش‌فرض تغییر کند
+        var botMessages = document.getElementsByClassName("message bot");
+        if (botMessages.length > 0) {
+          var lastBotMessage = botMessages[botMessages.length - 1];
+          var defaultTextElement = lastBotMessage.querySelector(".bot-default-text");
+          if (defaultTextElement) {
+            defaultTextElement.innerHTML = "رویدادهای زیر به تقویم اضافه شدند.";
+          }
+        }
+      })
+      .catch(error => {
+        console.error("Error:", error);
+      });
+    }
+
+    // تابع لغو رویدادها (حذف پیش‌نمایش از پیام)
+    function cancelEvents() {
+      var previews = document.getElementsByClassName("inline-event-preview");
+      if (previews.length > 0) {
+        // می‌توانیم فقط محتویات دکمه‌های تایید/لغو و پیش‌نمایش را پاک کنیم
+        previews[previews.length - 1].innerHTML = "";
+      }
+      alert("رویدادها لغو شدند.");
+    }
+
+    // افزودن عملکرد ارسال پیام با زدن کلید Enter (بدون Shift)
     document.getElementById("user-input").addEventListener("keypress", function(event) {
-        if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            sendMessage();
-        }
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
     });
-
-    // تابع جاوا اسکریپت برای ارسال رویداد به گوگل کلندر
-    function addEventToGoogleCalendar() {
-        fetch("/add_event_from_json", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ file: 'event_details.json' })  // ارسال فایل JSON به سرور
-        })
-        .then(response => response.json())  // دریافت پاسخ از سرور
-        .then(data => {
-            alert(data.message);  // نمایش پیام از سرور (موفقیت یا خطا)
-        })
-        .catch(error => {
-            console.error("Error:", error);  // در صورت بروز خطا در ارسال درخواست
-        });
-    }
-</script>
-
+  </script>
 </body>
 </html>
